@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: MPL-2.0
+
+.{
+    .name = .SelvaDisk,
+    .version = "0.1.0-indev",
+    .dependencies = .{
+        .SelvaFat = .{
+            .url = "https://github.com/SystemElva/SelvaFat/",
+            .hash = "SelvaFat-0.1.0-indev-TkUULZUbAAAalgbZ2tgSljCOjpFM-dRFpl8uuXoPHIXl",
+        },
+    },
+    .fingerprint = 0x8de0fc52020709c2,
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        ".gitignore",
+        "README.md",
+    },
+}
