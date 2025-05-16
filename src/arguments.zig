@@ -5,8 +5,8 @@ const std = @import("std");
 pub const ArgumentSet = struct {
     const Self = @This();
 
-    script_path: ?[]u8 = null,
-    output_path: ?[]u8 = null,
+    script_path: []u8,
+    output_path: []u8,
 
     const Accept = enum(u16) {
         all,
@@ -21,7 +21,8 @@ pub const ArgumentSet = struct {
     };
 
     pub fn parse(arguments: [][]u8) ParserError!Self {
-        var argument_set: Self = .{};
+        var output_path: ?[]u8 = null;
+        var script_path: ?[]u8 = null;
 
         var accept = Accept.all;
         var argument_index: usize = 0;
@@ -42,22 +43,22 @@ pub const ArgumentSet = struct {
                     }
                     if (std.mem.startsWith(u8, argument, "-o=")) {
                         if (argument.len > 3) {
-                            argument_set.output_path = argument[3..];
+                            output_path = argument[3..];
                         }
                         argument_index += 1;
                         continue;
                     }
                     if (std.mem.startsWith(u8, argument, "--output=")) {
                         if (argument.len > 9) {
-                            argument_set.output_path = argument[9..];
+                            output_path = argument[9..];
                         }
                         argument_index += 1;
                         continue;
                     }
-                    argument_set.script_path = argument;
+                    script_path = argument;
                 },
                 Accept.output_path => {
-                    argument_set.output_path = argument;
+                    output_path = argument;
                 },
             }
             accept = Accept.all;
@@ -66,13 +67,16 @@ pub const ArgumentSet = struct {
         if (accept != Accept.all) {
             return ParserError.MissingValueAtEnd;
         }
-        if (argument_set.output_path == null) {
+        if (output_path == null) {
             return ParserError.NoOutputPathGiven;
         }
-        if (argument_set.script_path == null) {
+        if (script_path == null) {
             return ParserError.NoScriptPathGiven;
         }
-        return argument_set;
+        return .{
+            .output_path = output_path.?,
+            .script_path = script_path.?,
+        };
     }
 
     pub fn parseZ(
