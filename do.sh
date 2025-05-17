@@ -8,12 +8,13 @@ build_core() {
 }
 
 build_addons() {
+    mkdir -p $PROJECT_ROOT/.addons
     for ADDON_NAME in $(ls "$PROJECT_ROOT/addons")
     do
         echo ">> $ADDON_NAME"
         cd "$PROJECT_ROOT/addons/$ADDON_NAME"
         zig build
-        cp zig-out/lib/*.so "$PROJECT_ROOT/.addons"
+        cp zig-out/lib/*.so "$PROJECT_ROOT/.addons/"
     done
 }
 
