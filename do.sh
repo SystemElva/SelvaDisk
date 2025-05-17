@@ -5,6 +5,7 @@ PROJECT_ROOT=$(pwd)
 
 build_core() {
     zig build "$@"
+        mv "$PROJECT_ROOT/zig-out/bin/SelvaDisk" . 
 }
 
 build_addons() {
@@ -54,10 +55,10 @@ case $1 in
 
     "r" | "run")
         # Build SelvaDisk if it hasn't been built before.
-        if [[ ! -f "zig-out/bin/SelvaDisk" ]];
+        if [[ ! -f "$PROJECT_ROOT/SelvaDisk" ]];
         then
-            build_project "$@"
-            local STATUS=$?
+            build_project
+            STATUS=$?
             if [[ $STATUS != 0 ]];
             then
                 echo "error: failed building software, won't attempt running it" >&2
@@ -65,7 +66,7 @@ case $1 in
             fi
 
         fi
-        ./zig-out/bin/SelvaDisk ${@:2}
+        $PROJECT_ROOT/SelvaDisk ${@:2}
         ;;
 
     *)
