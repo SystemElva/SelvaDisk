@@ -5,8 +5,11 @@
     .version = "0.1.0-indev",
     .dependencies = .{
         .SelvaFat = .{
-            .url = "https://github.com/SystemElva/SelvaFat/",
-            .hash = "SelvaFat-0.1.0-indev-TkUULZUbAAAalgbZ2tgSljCOjpFM-dRFpl8uuXoPHIXl",
+            .url = "git+https://github.com/SystemElva/SelvaFat/#7f8ff4c0099034f0dbec95f1d3b4dfe066ef0ff0",
+            .hash = "SelvaFat-0.1.0-indev-TkUULZUbAAAmW9pOeyZYf97rONFFKJ2peJAH90H37JTs",
+        },
+        .SelvaDiskApi = .{
+            .path = "api/",
         },
     },
     .fingerprint = 0x8de0fc52020709c2,

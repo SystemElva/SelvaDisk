@@ -11,11 +11,14 @@ pub fn build(build_process: *std.Build) void {
         .root_source_file = build_process.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
 
     const selvafat = build_process.dependency("SelvaFat", .{});
+    executable.root_module.addImport("SelvaFat.zig", selvafat.module("SelvaFat"));
 
-    executable.root_module.addImport("SelvaFat.zig", selvafat.module("selvafat"));
+    const selvadisk_api = build_process.dependency("SelvaDiskApi", .{});
+    executable.root_module.addImport("SelvaDiskApi.zig", selvadisk_api.module("SelvaDiskApi"));
 
     build_process.installArtifact(executable);
     const run_command = build_process.addRunArtifact(executable);

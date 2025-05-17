@@ -1,0 +1,14 @@
+.{
+    .name = .SelvaDiskApi,
+    .version = "0.1.0-indev",
+    .fingerprint = 0xe2732875e611afb9,
+    .minimum_zig_version = "0.15.0-dev.278+7733b5dbe",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        ".gitignore",
+        "README.md",
+    },
+}

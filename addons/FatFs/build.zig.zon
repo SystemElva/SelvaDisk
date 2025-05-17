@@ -1,0 +1,18 @@
+.{
+    .name = .SelvaDiskFatFs,
+    .version = "0.1.0-indev",
+    .fingerprint = 0x770c109a9f9cc9c,
+    .minimum_zig_version = "0.15.0-dev.278+7733b5dbe",
+    .dependencies = .{
+        .SelvaDiskApi = .{
+            .path = "../../api/",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        ".gitignore",
+        "README.md",
+    },
+}
