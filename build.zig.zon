@@ -3,6 +3,7 @@
 .{
     .name = .SelvaDisk,
     .version = "0.1.0-indev",
+    .fingerprint = 0x8de0fc52020709c2,
     .dependencies = .{
         .SelvaFat = .{
             .url = "git+https://github.com/SystemElva/SelvaFat/#7f8ff4c0099034f0dbec95f1d3b4dfe066ef0ff0",
@@ -12,12 +13,12 @@
             .path = "api/",
         },
     },
-    .fingerprint = 0x8de0fc52020709c2,
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
         ".gitignore",
         "README.md",
+        "LICENSE",
     },
 }
