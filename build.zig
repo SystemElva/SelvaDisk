@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 const std = @import("std");
-const api_builder = @import("api/build.zig");
 
 pub fn build(build_process: *std.Build) void {
     const target = build_process.standardTargetOptions(.{});
