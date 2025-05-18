@@ -1,10 +1,27 @@
 // SPDX-License-Identifier: MPL-2.0
 
 const std = @import("std");
+const api_builder = @import("api/build.zig");
 
 pub fn build(build_process: *std.Build) void {
     const target = build_process.standardTargetOptions(.{});
     const optimize = build_process.standardOptimizeOption(.{});
+
+    // Add API module
+
+    const api_module = build_process.addModule("SelvaDiskApi", .{
+        .root_source_file = build_process.path("api/src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    _ = build_process.addLibrary(.{
+        .linkage = .static,
+        .name = "SelvaDiskApi",
+        .root_module = api_module,
+    });
+
+    // Add core
 
     const executable = build_process.addExecutable(.{
         .name = "SelvaDisk",
