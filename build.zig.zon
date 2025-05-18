@@ -17,6 +17,8 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "spi/",
+        "addons/",
         ".gitignore",
         "README.md",
         "LICENSE",
