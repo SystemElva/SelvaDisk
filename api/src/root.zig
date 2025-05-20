@@ -68,13 +68,13 @@ pub fn init(
         const addon_dynamic_library = try std.DynLib.open(addon_path);
 
         const filesystems = std.ArrayList(Addon.Filesystem).init(general_purpose_allocator);
-        const partitioning_schemes = std.ArrayList(Addon.FnPartitionDisk).init(general_purpose_allocator);
+        const partitioning_schemes = std.ArrayList(Addon.PartitioningScheme).init(general_purpose_allocator);
         try addon_list.append(.{
             .label = "",
             .shared_library = addon_dynamic_library,
             .allocator = general_purpose_allocator,
             .filesystems = filesystems,
-            .disk_partitioners = partitioning_schemes,
+            .partitioning_schemes = partitioning_schemes,
         });
     }
     return .{
@@ -116,8 +116,8 @@ pub fn createFilesystem(
     var unchecked_addon: ?*Addon = null;
     var addon_index: usize = 0;
     while (addon_index < self.filesystem_handlers.items.len) {
-        if (self.addon_list.items[addon_index].supportsFilesystem(filesystem_name.?)) {
-            unchecked_addon = &self.addon_list.items[addon_index];
+        if (self.filesystem_handlers.items[addon_index].*.supportsFilesystem(filesystem_name.?)) {
+            unchecked_addon = self.filesystem_handlers.items[addon_index];
             break;
         }
         addon_index += 1;
