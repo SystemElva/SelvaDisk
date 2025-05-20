@@ -12,12 +12,18 @@ filesystem_handlers: std.ArrayList(*Addon),
 addon_list: std.ArrayList(Addon),
 
 pub const Error = error{
-    FilesystemDriverNotFound,
+    InvalidDiskJson,
+    NoPartitioningSchemeGiven,
+    UnsupportedPartitioningScheme,
+    PartitioningHandlerFailure,
+
     InvalidFilesystemJson,
-    NoInitializationFunction,
+    FilesystemDriverNotFound,
     UnsupportedFilesystem,
-    InitializationFailure,
     FilesystemHandlerFailure,
+
+    NoInitializationFunction,
+    InitializationFailure,
 };
 
 // Initialization functions (functions for addons to use)
@@ -33,6 +39,20 @@ pub export fn registerFilesystemCreator(
         return false;
     };
     addon.filesystems.append(filesystem.*) catch {
+        return false;
+    };
+    return true;
+}
+
+pub export fn registerPartitioningScheme(
+    self: *Self,
+    addon: *Addon,
+    scheme: *const Addon.PartitioningScheme,
+) callconv(.C) bool {
+    self.partitioning_scheme_handlers.append(addon) catch {
+        return false;
+    };
+    addon.partitioning_schemes.append(scheme.*) catch {
         return false;
     };
     return true;
@@ -97,6 +117,56 @@ pub fn deinit(
     self.addon_list.deinit();
 }
 
+pub fn setupAllAddons(self: *Self) !void {
+    var addon_index: usize = 0;
+    while (addon_index < self.addon_list.items.len) {
+        var addon = &self.addon_list.items[addon_index];
+        try addon.setup(self);
+        addon_index += 1;
+    }
+}
+
+pub fn partitionDisk(
+    self: *Self,
+    disk_json: *std.json.Value,
+) !void {
+
+    // Get name of wanted partitioning scheme
+
+    if (disk_json.* != .object) {
+        return Error.InvalidDiskJson;
+    }
+
+    const unchecked_partitioning_scheme_name = disk_json.object.get("partitioning");
+    if (unchecked_partitioning_scheme_name == null) {
+        return Error.NoPartitioningSchemeGiven;
+    }
+    if (unchecked_partitioning_scheme_name.? != .string) {
+        return Error.InvalidDiskJson;
+    }
+    const partitioning_scheme_name = unchecked_partitioning_scheme_name.?.string;
+
+    // Find partitioning scheme structure
+
+    var partitioning_scheme: ?*Addon.PartitioningScheme = null;
+    var supporting_addon: ?*Addon = null;
+
+    for (self.addon_list.items) |*addon| {
+        const found_partitioning_scheme = addon.searchPartitioningScheme(partitioning_scheme_name);
+        if (found_partitioning_scheme != null) {
+            partitioning_scheme = found_partitioning_scheme;
+            supporting_addon = addon;
+            break;
+        }
+    }
+    if (partitioning_scheme == null) {
+        return Error.UnsupportedPartitioningScheme;
+    }
+    if (!partitioning_scheme.?.partition_disk(supporting_addon.?, disk_json)) {
+        return Error.PartitioningHandlerFailure;
+    }
+}
+
 pub fn createFilesystem(
     self: *Self,
     filesystem_json: ?std.json.Value,
@@ -124,26 +194,17 @@ pub fn createFilesystem(
     }
 
     if (unchecked_addon == null) {
-        return Error.FilesystemDriverNotFound;
+        return Error.UnsupportedFilesystem;
     }
     var addon = unchecked_addon.?;
     const filesystem = addon.searchFilesystem(filesystem_name.?);
     if (filesystem == null) {
-        return Error.UnsupportedFilesystem; // @todo: Create another error for this
+        return Error.UnsupportedFilesystem;
     }
 
     var empty_value: std.json.Value = .{ .bool = true };
 
     if (!filesystem.?.create(addon, &empty_value)) {
         return Error.FilesystemHandlerFailure;
-    }
-}
-
-pub fn setupAllAddons(self: *Self) !void {
-    var addon_index: usize = 0;
-    while (addon_index < self.addon_list.items.len) {
-        var addon = &self.addon_list.items[addon_index];
-        try addon.setup(self);
-        addon_index += 1;
     }
 }
