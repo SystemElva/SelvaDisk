@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const Api = @import("root.zig");
+pub const Description = @import("Description.zig");
 pub const Error = @import("root.zig").Error;
 
 const Self = @This();
@@ -28,7 +29,8 @@ pub const Filesystem = struct {
 
     pub const FnCreate = (*const fn (
         self: *Self,
-        filesystem_json: *std.json.Value,
+        description: *const Description,
+        filesystem_json: *const std.json.Value,
     ) callconv(.C) bool);
 };
 
@@ -38,7 +40,8 @@ pub const PartitioningScheme = struct {
 
     pub const FnPartitionDisk = (*const fn (
         self: *Self,
-        disk_json: *std.json.Value,
+        description: *const Description,
+        output_path: *const []const u8,
     ) callconv(.C) bool);
 };
 

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 pub const Addon = @import("Addon.zig");
+pub const Description = @import("Description.zig");
 
 const Self = @This();
 
@@ -128,16 +129,17 @@ pub fn setupAllAddons(self: *Self) !void {
 
 pub fn partitionDisk(
     self: *Self,
-    disk_json: *std.json.Value,
+    description: Description,
+    output_path: []const u8,
 ) !void {
 
     // Get name of wanted partitioning scheme
 
-    if (disk_json.* != .object) {
+    if (description.source_json != .object) {
         return Error.InvalidDiskJson;
     }
 
-    const unchecked_partitioning_scheme_name = disk_json.object.get("partitioning");
+    const unchecked_partitioning_scheme_name = description.source_json.object.get("partitioning");
     if (unchecked_partitioning_scheme_name == null) {
         return Error.NoPartitioningSchemeGiven;
     }
@@ -162,22 +164,26 @@ pub fn partitionDisk(
     if (partitioning_scheme == null) {
         return Error.UnsupportedPartitioningScheme;
     }
-    if (!partitioning_scheme.?.partition_disk(supporting_addon.?, disk_json)) {
+    if (!partitioning_scheme.?.partition_disk(
+        supporting_addon.?,
+        &description,
+        &output_path,
+    )) {
         return Error.PartitioningHandlerFailure;
     }
 }
 
 pub fn createFilesystem(
     self: *Self,
+    description: Description,
     filesystem_json: ?std.json.Value,
 ) Error!void {
     // Find the addon that supports this filesystem
 
     _ = filesystem_json;
 
-    // if (filesystem_json.? != .object) {
-    //     return Error.InvalidFilesystemJson;
-    // }
+    // @otdo: Don't hardcode for FAT12
+
     const filesystem_name: ?[]const u8 = "fat12"; // filesystem_json.?.object.get("filesystem");
     if (filesystem_name == null) {
         return Error.UnsupportedFilesystem;
@@ -202,9 +208,15 @@ pub fn createFilesystem(
         return Error.UnsupportedFilesystem;
     }
 
+    // @todo: The empty value was only for testing purposes
+
     var empty_value: std.json.Value = .{ .bool = true };
 
-    if (!filesystem.?.create(addon, &empty_value)) {
+    if (!filesystem.?.create(
+        addon,
+        &description,
+        &empty_value,
+    )) {
         return Error.FilesystemHandlerFailure;
     }
 }

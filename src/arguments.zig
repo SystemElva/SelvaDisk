@@ -18,9 +18,13 @@ pub const ArgumentSet = struct {
         NoOutputPathGiven,
         NoScriptPathGiven,
         AllocationError,
+        PathResolutonFailure,
     };
 
-    pub fn parse(arguments: [][]u8) ParserError!Self {
+    pub fn parse(
+        arguments: [][]u8,
+        allocator: std.mem.Allocator,
+    ) ParserError!Self {
         var output_path: ?[]u8 = null;
         var script_path: ?[]u8 = null;
 
@@ -43,22 +47,75 @@ pub const ArgumentSet = struct {
                     }
                     if (std.mem.startsWith(u8, argument, "-o=")) {
                         if (argument.len > 3) {
-                            output_path = argument[3..];
+                            const work_folder_path = std.fs.cwd().realpathAlloc(
+                                allocator,
+                                ".",
+                            ) catch {
+                                return ParserError.PathResolutonFailure;
+                            };
+
+                            defer allocator.free(work_folder_path);
+                            output_path = std.fs.path.resolve(
+                                allocator,
+                                &[2][]const u8{ work_folder_path, argument },
+                            ) catch {
+                                return ParserError.PathResolutonFailure;
+                            };
                         }
                         argument_index += 1;
                         continue;
                     }
                     if (std.mem.startsWith(u8, argument, "--output=")) {
                         if (argument.len > 9) {
-                            output_path = argument[9..];
+                            const work_folder_path = std.fs.cwd().realpathAlloc(
+                                allocator,
+                                ".",
+                            ) catch {
+                                return ParserError.PathResolutonFailure;
+                            };
+                            defer allocator.free(work_folder_path);
+
+                            output_path = std.fs.path.resolve(
+                                allocator,
+                                &[2][]const u8{ work_folder_path, argument },
+                            ) catch {
+                                return ParserError.PathResolutonFailure;
+                            };
                         }
                         argument_index += 1;
                         continue;
                     }
-                    script_path = argument;
+
+                    const work_folder_path = std.fs.cwd().realpathAlloc(
+                        allocator,
+                        ".",
+                    ) catch {
+                        return ParserError.PathResolutonFailure;
+                    };
+                    defer allocator.free(work_folder_path);
+
+                    script_path = std.fs.path.resolve(
+                        allocator,
+                        &[2][]const u8{ work_folder_path, argument },
+                    ) catch {
+                        return ParserError.PathResolutonFailure;
+                    };
                 },
                 Accept.output_path => {
-                    output_path = argument;
+                    const work_folder_path = std.fs.cwd().realpathAlloc(
+                        allocator,
+                        ".",
+                    ) catch {
+                        return ParserError.PathResolutonFailure;
+                    };
+                    defer allocator.free(work_folder_path);
+
+                    output_path = std.fs.path.resolve(
+                        allocator,
+                        &[2][]const u8{ work_folder_path, argument },
+                    ) catch {
+                        return ParserError.PathResolutonFailure;
+                    };
                 },
             }
             accept = Accept.all;
@@ -98,7 +155,7 @@ pub const ArgumentSet = struct {
                 arguments[index],
             );
         }
-        return try Self.parse(argument_duplicates);
+        return try Self.parse(argument_duplicates, allocator);
     }
 
     pub fn writeToFile(self: Self, file: std.fs.File) !void {

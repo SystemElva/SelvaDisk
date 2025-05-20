@@ -3,11 +3,13 @@
 const std = @import("std");
 const Api = @import("SelvaDiskApi.zig");
 
-export fn create_fat12(
+pub export fn create_fat12(
     self: *Api.Addon,
-    filesystem_json: *std.json.Value,
+    description: *const Api.Description,
+    filesystem_json: *const std.json.Value,
 ) callconv(.C) bool {
     _ = self;
+    _ = description;
     _ = filesystem_json;
 
     std.debug.print("Creating FAT12 filesystem!\n", .{});
@@ -24,7 +26,10 @@ export fn initialize(
         .create = create_fat12,
         .label = &fat12_filesystem_label,
     };
-    const status = api.registerFilesystemCreator(self, &filesystem);
+    const status = api.registerFilesystemCreator(
+        self,
+        &filesystem,
+    );
     if (!status) {
         return false;
     }
