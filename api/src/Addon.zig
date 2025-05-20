@@ -1,62 +1,54 @@
 // SPDX-License-Identifier: MPL-2.0
 
 const std = @import("std");
+const Api = @import("root.zig");
 pub const Error = @import("root.zig").Error;
 
 const Self = @This();
 
+label: []const u8,
+
 specifics_pointer: ?*anyopaque = null,
+allocator: std.mem.Allocator,
 shared_library: std.DynLib,
-vtable: VTable,
 
-supported_filesystems: std.ArrayList([]u8),
+filesystems: std.ArrayList(Filesystem),
+disk_partitioners: std.ArrayList(FnPartitionDisk),
 
-// filesystem_drivers: ?std.ArrayList(FilesystemDriver) = null,
+// Function Pointers
 
-pub const FnInitialize = (*fn (
+pub const FnInitialize = (*const fn (
     addon: *Self,
+    api: *Api,
 ) callconv(.C) bool);
 
-pub const VTable = struct {
-    destroy: ?(*fn (
-        self: Self,
-    ) void) = null,
+pub const FnPartitionDisk = (*const fn (
+    addon: *Self,
+    disk_json: *std.json.Value,
+) callconv(.C) bool);
 
-    create_filesystem: ?(*fn (
-        driver: Self,
-        partition_json: std.json.Value,
-        host_path: []u8,
-    ) bool) = null,
+pub const Filesystem = struct {
+    label: *const []const u8,
+    create: FnCreate,
 
-    store_item: ?(*fn (
-        driver: Self,
-        destination_path: []u8,
-        source_path: []u8,
-    ) bool) = null,
-
-    load_item: ?(*fn (
-        driver: Self,
-        destination_path: []u8,
-        source_path: []u8,
-    ) bool) = null,
-
-    create_folder: ?(*fn (
-        driver: Self,
-        folder_path: []u8,
-    ) bool) = null,
-
-    remove_item: ?(*fn (
-        driver: Self,
-        item_path: []u8,
-    ) bool) = null,
-
-    list_items: ?(*fn (
-        driver: Self,
-        folder_path: []u8,
-    ) bool) = null,
+    pub const FnCreate = (*const fn (
+        self: *Self,
+        filesystem_json: *std.json.Value,
+    ) callconv(.C) bool);
 };
 
-pub fn initialize(self: *Self) !void {
+pub fn deinit(
+    self: *Self,
+) void {
+    self.disk_partitioners.deinit();
+    self.filesystems.deinit();
+    self.shared_library.close();
+}
+
+pub fn setup(
+    self: *Self,
+    api: *Api,
+) !void {
     const unchecked_init_function = self.shared_library.lookup(
         FnInitialize,
         "initialize",
@@ -65,92 +57,38 @@ pub fn initialize(self: *Self) !void {
         return Error.NoInitializationFunction;
     }
     const checked_init = unchecked_init_function.?;
-    const status = checked_init(self);
+    const status = checked_init(self, api);
     if (!status) {
-        return Error.InitializationFailed;
+        return Error.InitializationFailure;
     }
 }
 
-pub fn createFilesystem(
-    self: Self,
-    partition_json: std.json.Value,
-    host_path: []u8,
-) bool {
-    if (self.vtable.create_filesystem == null) {
-        return false;
+pub fn searchFilesystem(self: *Self, label: []const u8) ?*Filesystem {
+    var filesystem_index: usize = 0;
+    while (filesystem_index < self.filesystems.items.len) {
+        if (std.mem.eql(
+            u8,
+            self.filesystems.items[filesystem_index].label.*,
+            label,
+        )) {
+            return &self.filesystems.items[filesystem_index];
+        }
+        filesystem_index += 1;
     }
-    return self.vtable.create_filesystem.?(
-        self,
-        partition_json,
-        host_path,
-    );
+    return null;
 }
 
-pub fn storeItem(
-    self: Self,
-    destination_path: []u8,
-    source_path: []u8,
-) bool {
-    if (self.vtable.store_item == null) {
-        return false;
+pub fn supportsFilesystem(self: *Self, label: []const u8) bool {
+    var filesystem_index: usize = 0;
+    while (filesystem_index < self.filesystems.items.len) {
+        if (std.mem.eql(
+            u8,
+            self.filesystems.items[filesystem_index].label.*,
+            label,
+        )) {
+            return true;
+        }
+        filesystem_index += 1;
     }
-    return self.vtable.store_item.?(
-        self,
-        destination_path,
-        source_path,
-    );
-}
-
-pub fn loadItem(
-    self: Self,
-    destination_path: []u8,
-    source_path: []u8,
-) bool {
-    if (self.vtable.load_item == null) {
-        return false;
-    }
-    return self.vtable.load_item.?(
-        self,
-        destination_path,
-        source_path,
-    );
-}
-
-pub fn createFolder(
-    self: Self,
-    folder_path: []u8,
-) bool {
-    if (self.vtable.create_folder == null) {
-        return false;
-    }
-    return self.vtable.create_folder.?(
-        self,
-        folder_path,
-    );
-}
-
-pub fn removeItem(
-    self: Self,
-    item_path: []u8,
-) bool {
-    if (self.vtable.remove_item == null) {
-        return false;
-    }
-    return self.vtable.remove_item.?(
-        self,
-        item_path,
-    );
-}
-
-pub fn listItems(
-    self: Self,
-    folder_path: []u8,
-) bool {
-    if (self.vtable.listItems == null) {
-        return false;
-    }
-    return self.vtable.listItems.?(
-        self,
-        folder_path,
-    );
+    return false;
 }

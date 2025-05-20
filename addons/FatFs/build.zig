@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 const std = @import("std");
 
 pub fn build(build_process: *std.Build) void {
@@ -8,6 +10,7 @@ pub fn build(build_process: *std.Build) void {
         .root_source_file = build_process.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
 
     const lib = build_process.addLibrary(.{

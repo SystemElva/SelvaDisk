@@ -7,7 +7,6 @@ export fn initialize(
 
     // Write initialization code here.
 
-    _ = driver_registry;
     std.debug.print("The Addon Template has been called!\n", .{});
     return true;
 }

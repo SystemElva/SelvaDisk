@@ -27,6 +27,7 @@
 # Build Folders
 .zig-cache/
 zig-out/
+vgcore.*
 
 # Folder for compiled Add-Ons
 .addons/
