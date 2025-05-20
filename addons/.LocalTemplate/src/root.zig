@@ -1,12 +1,16 @@
 const std = @import("std");
-const api = @import("SelvaDiskApi.zig");
+const Api = @import("SelvaDiskApi.zig");
 
 export fn initialize(
-    driver_registry: *api.FilesystemDriver.Registry,
+    self: *Api.Addon,
+    api: *Api,
 ) callconv(.C) bool {
 
     // Write initialization code here.
 
-    std.debug.print("The Addon Template has been called!\n", .{});
+    _ = self;
+    _ = api;
+
+    std.debug.print("The local Addon Template has been called!\n", .{});
     return true;
 }

@@ -10,5 +10,5 @@ This is to ensure that anyone can  write addons without being required
 to disclose the source code of their own work.
 
 > SelvaDisk's addon templates' code  may be released using a different
-> (or the same) license without many modifications - any ueful feature
+> (or the same) license without much modification - any useful feature
 > is welcome.
