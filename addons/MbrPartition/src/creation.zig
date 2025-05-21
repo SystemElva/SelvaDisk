@@ -3,18 +3,6 @@
 const std = @import("std");
 const Api = @import("SelvaDiskApi.zig");
 
-const CreationError = error{
-    InvalidBootCodeJsonType,
-    BootCodeFileNotFound,
-    BootCodeAccessDenied,
-    BootCodeReadError,
-    GenericBootCodeFileAccessError,
-    InvalidVolumeSizeJsonType,
-    VolumeSizeTooSmall,
-    SectorSizeTooLarge,
-    SectorSizeTooSmall,
-};
-
 fn get_bootcode(
     description: *const Api.Description,
     base_folder: std.fs.Dir,
@@ -65,22 +53,28 @@ fn get_bootcode(
     return bootcode;
 }
 
-fn parse_disk_size_string(description: *const Api.Description) !usize {
+fn parse_disk_size_string(description: *const Api.Description) !DiskGeometry {
     _ = description;
 
     std.log.warn("volume size strings aren't implemented yet. Using default: 3.5\" HD floppy size (1.44MiB)", .{});
-    return 2880 * 512;
+    return .{
+        .bytes_per_sector = 512,
+        .num_sectors = 2880,
+    };
 }
 
-fn get_disk_size(
+fn parse_disk_geometry(
     description: *const Api.Description,
-) !usize {
+) !DiskGeometry {
     // @todo: Warn when returning an error.
 
     const nullable_volume_size = description.source_json.object.get("volume_size");
     if (nullable_volume_size == null) {
         std.log.warn("volume size not given. Using default: 3.5\" HD floppy size (1.44MiB)", .{});
-        return 2880 * 512;
+        return .{
+            .bytes_per_sector = 512,
+            .num_sectors = 2880,
+        };
     }
     if (nullable_volume_size.? == .string) {
         return parse_disk_size_string(description);
@@ -104,7 +98,9 @@ fn get_disk_size(
             "no sector size given. Using default: 512 bytes per sector",
             .{},
         );
-        return volume_size * 512;
+        return .{
+            .num_sectors = volume_size,
+        };
     }
     // @todo: Support giving a cluster size as 4K, 0.5K, 1M, etc..
 
@@ -142,7 +138,37 @@ fn get_disk_size(
             .{},
         );
     }
-    return volume_size * sector_size;
+    return .{
+        .bytes_per_sector = sector_size,
+        .num_sectors = volume_size,
+    };
+}
+
+fn parse_partition_list(description: *const Api.Description) ![4]Partition {
+    _ = description;
+}
+
+fn insert_partition_entry(partition: Partition, bytes: *[]u8) void {
+    bytes[4] = partition.type_identifier;
+
+    bytes[8] = @intCast(partition.start & 0xff);
+    bytes[9] = @intCast((partition.start >> 8) & 0xff);
+    bytes[10] = @intCast((partition.start >> 16) & 0xff);
+    bytes[11] = @intCast(partition.start >> 24);
+
+    bytes[12] = @intCast(partition.length & 0xff);
+    bytes[13] = @intCast((partition.length >> 8) & 0xff);
+    bytes[14] = @intCast((partition.length >> 16) & 0xff);
+    bytes[15] = @intCast(partition.length >> 24);
+}
+
+fn write_bootsector(disk_info: *const DiskInfo, output: *std.fs.File) !void {
+    var bytes = [1]u8{0} ** 512;
+    @memcpy(bytes[0..446], &disk_info.bootcode);
+    bytes[510] = 0x55;
+    bytes[511] = 0xaa;
+
+    _ = try output.write(&bytes);
 }
 
 pub export fn create_mbr_disk(
@@ -151,7 +177,6 @@ pub export fn create_mbr_disk(
     output_path: *const []const u8,
 ) callconv(.C) bool {
     _ = addon;
-    _ = output_path;
 
     const json: std.json.Value = description.source_json;
 
@@ -177,12 +202,69 @@ pub export fn create_mbr_disk(
     const bootcode = get_bootcode(description, base_folder) catch {
         return false;
     };
-    const disk_size = get_disk_size(description) catch {
+    const disk_geometry = parse_disk_geometry(description) catch {
         return false;
     };
 
-    _ = bootcode;
-    std.log.info("creating volume with {d} bytes", .{disk_size});
+    const disk_info = DiskInfo{
+        .bootcode = bootcode,
+        .geometry = disk_geometry,
+    };
+
+    const output_folder_path = std.fs.path.dirname(output_path.*);
+    if (output_folder_path == null) {
+        std.log.err("failed getting folder to store output-file in", .{});
+        return false;
+    }
+
+    var output_file = std.fs.openFileAbsolute(
+        output_path.*,
+        .{ .mode = .write_only },
+    ) catch file_creation: {
+        break :file_creation std.fs.createFileAbsolute(output_path.*, .{}) catch {
+            std.log.err("failed creating output-file: {s}", .{output_path});
+            return false;
+        };
+    };
+
+    write_bootsector(&disk_info, &output_file) catch {
+        std.log.err("failed writing bootsector", .{});
+        return false;
+    };
 
     return true;
 }
+
+const DiskGeometry = struct {
+    bytes_per_sector: usize = 512,
+    num_sectors: usize = 2880,
+};
+
+const Partition = struct {
+    type_identifier: u8,
+    start: usize,
+    length: usize,
+    content: Content,
+
+    const Content = enum {
+        file,
+        filesystem,
+    };
+};
+
+const DiskInfo = struct {
+    geometry: DiskGeometry,
+    bootcode: [446]u8,
+};
+
+const CreationError = error{
+    InvalidBootCodeJsonType,
+    BootCodeFileNotFound,
+    BootCodeAccessDenied,
+    BootCodeReadError,
+    GenericBootCodeFileAccessError,
+    InvalidVolumeSizeJsonType,
+    VolumeSizeTooSmall,
+    SectorSizeTooLarge,
+    SectorSizeTooSmall,
+};
