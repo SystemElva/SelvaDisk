@@ -152,7 +152,7 @@ fn parse_partition_entry(partition_value: std.json.Value) !Partition {
     const map = partition_value.object;
     const nullable_start = map.get("start");
     if (nullable_start == null) {
-        std.log.err("partition-start is not optional but doesn't exist", .{});
+        std.log.err("partition-start is not optional but wasn't found", .{});
         return CreationError.NoPartitionStartGiven;
     }
     if (nullable_start.? != .integer) {
@@ -162,11 +162,11 @@ fn parse_partition_entry(partition_value: std.json.Value) !Partition {
 
     const nullable_length = map.get("length");
     if (nullable_length == null) {
-        std.log.err("partition-item length is not optional but doesn't exist", .{});
+        std.log.err("partition-length is not optional but wasn't found", .{});
         return CreationError.NoPartitionLengthGiven;
     }
     if (nullable_length.? != .integer) {
-        std.log.err("partition-item length must be an integer", .{});
+        std.log.err("partition-length must be an integer", .{});
         return CreationError.InvalidPartitionLengthGiven;
     }
 
@@ -181,8 +181,28 @@ fn parse_partition_entry(partition_value: std.json.Value) !Partition {
         content_string = nullable_content_string.?.string;
     }
 
+    const nullable_type_identifier = map.get("type");
+    var type_identifier: u8 = 0;
+    if (nullable_type_identifier != null) {
+        if (nullable_type_identifier.? != .integer) {
+            std.log.info("partition-type must be an integer", .{});
+            return CreationError.InvalidPartitionTypeJsonType;
+        } else {
+            const unchecked_type_identifier = nullable_type_identifier.?.integer;
+            if (unchecked_type_identifier < 0) {
+                std.log.err("partition-type must be a positive integer", .{});
+                return CreationError.InvalidPartitionTypeNumber;
+            }
+            if (unchecked_type_identifier > 255) {
+                std.log.err("partition-type must be below 255", .{});
+                return CreationError.InvalidPartitionTypeNumber;
+            }
+            type_identifier = @intCast(unchecked_type_identifier);
+        }
+    }
+
     return .{
-        .type_identifier = 0, // @todo: This should be extracted from the JSON.
+        .type_identifier = type_identifier,
         .start = @intCast(nullable_start.?.integer),
         .length = @intCast(nullable_length.?.integer),
         .content = try .fromString(content_string),
@@ -364,6 +384,9 @@ const CreationError = error{
     BootCodeAccessDenied,
     BootCodeReadError,
     GenericBootCodeFileAccessError,
+
+    InvalidPartitionTypeJsonType,
+    InvalidPartitionTypeNumber,
 
     InvalidPartitionsJsonType,
     NoPartitionsDefined,

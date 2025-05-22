@@ -8,6 +8,7 @@
     "partitions": [
         {
             "name": "code-partition",
+            "type": 158,
             "start": 1,
             "length": 63,
             "content": "file",
@@ -15,6 +16,7 @@
         },
         {
             "name": "bootfs",
+            "type": 1,
             "start": 64,
             "length": 1024,
             "content": "filesystem",
