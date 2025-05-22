@@ -3,17 +3,19 @@
     "action": "create",
 
     "partitioning": "mbr",
-    "boot_code": "bootcode.bin",
+    "bootcode": "bootcode.bin",
     "volume_size": 2880,
     "partitions": [
         {
             "name": "code-partition",
+            "start": 1,
             "length": 63,
             "content": "file",
             "file": "boot_code.bin"
         },
         {
             "name": "bootfs",
+            "start": 64,
             "length": 1024,
             "content": "filesystem",
             "filesystem": "fat12",

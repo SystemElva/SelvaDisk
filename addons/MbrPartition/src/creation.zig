@@ -144,11 +144,78 @@ fn parse_disk_geometry(
     };
 }
 
-fn parse_partition_list(description: *const Api.Description) ![4]Partition {
-    _ = description;
+fn parse_partition_entry(partition_value: std.json.Value) !Partition {
+    if (partition_value != .object) {
+        return CreationError.InvalidPartitionsJsonType; // @todo: Seperate error for this
+    }
+
+    const map = partition_value.object;
+    const nullable_start = map.get("start");
+    if (nullable_start == null) {
+        std.log.err("partition-start is not optional but doesn't exist", .{});
+        return CreationError.NoPartitionStartGiven;
+    }
+    if (nullable_start.? != .integer) {
+        std.log.err("partition-start must be an integer", .{});
+        return CreationError.InvalidPartitionStartGiven;
+    }
+
+    const nullable_length = map.get("length");
+    if (nullable_length == null) {
+        std.log.err("partition-item length is not optional but doesn't exist", .{});
+        return CreationError.NoPartitionLengthGiven;
+    }
+    if (nullable_length.? != .integer) {
+        std.log.err("partition-item length must be an integer", .{});
+        return CreationError.InvalidPartitionLengthGiven;
+    }
+
+    // Get the content type and set it to zeroes if none was given.
+
+    const nullable_content_string = map.get("content");
+    var content_string: []const u8 = "zeroes";
+    if (nullable_content_string != null) {
+        if (nullable_content_string.? != .string) {
+            return CreationError.InvalidContentIdentifier;
+        }
+        content_string = nullable_content_string.?.string;
+    }
+
+    return .{
+        .type_identifier = 0, // @todo: This should be extracted from the JSON.
+        .start = @intCast(nullable_start.?.integer),
+        .length = @intCast(nullable_length.?.integer),
+        .content = try .fromString(content_string),
+    };
 }
 
-fn insert_partition_entry(partition: Partition, bytes: *[]u8) void {
+fn parse_partition_list(description: *const Api.Description) ![4]Partition {
+    const json: std.json.Value = description.source_json;
+    const nullable_json_partitions = json.object.get("partitions");
+
+    if (nullable_json_partitions == null) {
+        std.log.err("root-item 'partitions' is not optional", .{});
+        return CreationError.NoPartitionsDefined;
+    }
+    if (nullable_json_partitions.? != .array) {
+        std.log.err("root-item 'partitions' must be an array", .{});
+        return CreationError.InvalidPartitionsJsonType;
+    }
+    const json_partitions = nullable_json_partitions.?.array;
+
+    var partitions: [4]Partition = .{Partition{}} ** 4;
+
+    var partition_index: usize = 0;
+    while (partition_index < @min(json_partitions.items.len, 4)) {
+        partitions[partition_index] = try parse_partition_entry(json_partitions.items[partition_index]);
+        partitions[partition_index].active = true;
+        partition_index += 1;
+    }
+    return partitions;
+}
+
+fn write_partition_entry(partition: Partition, bytes: []u8) void {
+    bytes[0] = 0x80;
     bytes[4] = partition.type_identifier;
 
     bytes[8] = @intCast(partition.start & 0xff);
@@ -168,8 +235,23 @@ fn write_bootsector(disk_info: *const DiskInfo, output: *std.fs.File) !void {
     bytes[510] = 0x55;
     bytes[511] = 0xaa;
 
+    var partition_index: usize = 0;
+    while (partition_index < disk_info.partitions.len) {
+        if (!disk_info.partitions[partition_index].active) {
+            partition_index += 1;
+            continue;
+        }
+        const entry_start = 446 + (partition_index * 16);
+        write_partition_entry(
+            disk_info.partitions[partition_index],
+            bytes[entry_start .. entry_start + 16],
+        );
+        partition_index += 1;
+    }
     _ = try output.write(&bytes);
 }
+
+// fn write_disk(disk_info: *const DiskInfo, )
 
 pub export fn create_mbr_disk(
     addon: *Api.Addon,
@@ -207,8 +289,11 @@ pub export fn create_mbr_disk(
     };
 
     const disk_info = DiskInfo{
-        .bootcode = bootcode,
         .geometry = disk_geometry,
+        .partitions = parse_partition_list(description) catch {
+            return false;
+        },
+        .bootcode = bootcode,
     };
 
     const output_folder_path = std.fs.path.dirname(output_path.*);
@@ -241,19 +326,35 @@ const DiskGeometry = struct {
 };
 
 const Partition = struct {
-    type_identifier: u8,
-    start: usize,
-    length: usize,
-    content: Content,
+    active: bool = false,
+    type_identifier: u8 = 1,
+    start: usize = 0,
+    length: usize = 0,
+    content: Content = .zeroes,
 
     const Content = enum {
+        zeroes,
         file,
         filesystem,
+
+        fn fromString(string: []const u8) !Content {
+            if (!std.mem.eql(u8, string, "zeroes")) {
+                return .zeroes;
+            }
+            if (!std.mem.eql(u8, string, "file")) {
+                return .file;
+            }
+            if (!std.mem.eql(u8, string, "filesystem")) {
+                return .filesystem;
+            }
+            return CreationError.InvalidContentIdentifier;
+        }
     };
 };
 
 const DiskInfo = struct {
     geometry: DiskGeometry,
+    partitions: [4]Partition,
     bootcode: [446]u8,
 };
 
@@ -263,6 +364,16 @@ const CreationError = error{
     BootCodeAccessDenied,
     BootCodeReadError,
     GenericBootCodeFileAccessError,
+
+    InvalidPartitionsJsonType,
+    NoPartitionsDefined,
+    NoPartitionStartGiven,
+    NoPartitionLengthGiven,
+    InvalidPartitionStartGiven,
+    InvalidPartitionLengthGiven,
+
+    InvalidContentIdentifier,
+
     InvalidVolumeSizeJsonType,
     VolumeSizeTooSmall,
     SectorSizeTooLarge,
