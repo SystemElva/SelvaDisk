@@ -1,0 +1,29 @@
+
+# Binaries
+
+## ELF binaries without suffix
+*
+!*/
+!*.*
+
+## Explicitly suffixed ELF binaries
+*.a
+*.elf
+*.o
+*.so
+
+## Windows Binaries
+*.dll
+*.elf
+*.lib
+
+
+
+# Build Folders
+.build/
+.zig-cache/
+zig-out/
+.extensions/
+
+# Convenience folder for withholding files
+.private/

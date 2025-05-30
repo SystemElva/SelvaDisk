@@ -1,0 +1,6 @@
+Supported actions:
+- [ b   | build-all ]
+- [ bc  | build-core ]
+- [ ba  | build-addons ]
+- [ h   | help ]
+

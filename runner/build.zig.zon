@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: MPL-2.0
+
+.{
+    .name = .selvadisk,
+    .version = "0.1.0-indev",
+    .fingerprint = 0xaf23d1cf879edbfd,
+    .dependencies = .{
+        .selvadisk_core = .{
+            .path = "../core/",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "addons/",
+        ".gitignore",
+        "README.md",
+        "LICENSE",
+    },
+}

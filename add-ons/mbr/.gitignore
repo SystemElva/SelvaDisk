@@ -1,0 +1,26 @@
+
+# Binaries
+
+## All files without suffix (which are most likely ELF)
+*
+!*/
+!*.*
+
+## Explicitly suffixed ELF files (unixoid systems)
+*.a
+*.elf
+*.so
+
+## COFF/PE executables (Windows NT-based systems)
+*.dll
+*.exe
+*.libw
+
+
+
+# Intermediate Files
+.zig-cache/
+zig-out/
+
+# Convenience Folder
+.private/
