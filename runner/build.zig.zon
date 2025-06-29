@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 .{
-    .name = .selvadisk,
+    .name = .SelvaDiskRunner,
     .version = "0.1.0-indev",
-    .fingerprint = 0xaf23d1cf879edbfd,
+    .fingerprint = 0xd9753437755fee1,
+    .minimum_zig_version = "0.14.1",
     .dependencies = .{
-        .selvadisk_core = .{
+        .SelvaDiskCore = .{
             .path = "../core/",
         },
     },

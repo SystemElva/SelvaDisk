@@ -3,16 +3,20 @@
 const std = @import("std");
 const Core = @This();
 
-general_purpose_allocator: std.mem.Allocator,
+allocator: std.mem.Allocator,
 
 pub const CreationInfo = struct {};
 
 pub fn init(
     creation_info: CreationInfo,
-    general_purpose_allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator,
 ) !Core {
     _ = creation_info;
     return .{
-        .general_purpose_allocator = general_purpose_allocator,
+        .allocator = allocator,
     };
+}
+
+pub fn deinit(core: Core) void {
+    _ = core;
 }

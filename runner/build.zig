@@ -6,20 +6,6 @@ pub fn build(build_process: *std.Build) void {
     const target = build_process.standardTargetOptions(.{});
     const optimize = build_process.standardOptimizeOption(.{});
 
-    // Add API module
-
-    const core_module = build_process.addModule("selvadisk_core", .{
-        .root_source_file = build_process.path("../core/src/root.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    _ = build_process.addLibrary(.{
-        .linkage = .static,
-        .name = "SelvaDiskCore",
-        .root_module = core_module,
-    });
-
     // Add core
 
     const executable = build_process.addExecutable(.{
@@ -30,8 +16,8 @@ pub fn build(build_process: *std.Build) void {
         .link_libc = true,
     });
 
-    const core_dependency = build_process.dependency("selvadisk_core", .{});
-    executable.root_module.addImport("selvadisk_core.zig", core_dependency.module("selvadisk_core"));
+    const core_dependency = build_process.dependency("SelvaDiskCore", .{});
+    executable.root_module.addImport("SelvaDiskCore", core_dependency.module("SelvaDiskCore"));
 
     build_process.installArtifact(executable);
     const run_command = build_process.addRunArtifact(executable);

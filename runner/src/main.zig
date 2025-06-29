@@ -1,5 +1,10 @@
 const std = @import("std");
+const Core = @import("SelvaDiskCore");
 
 pub fn main() void {
-    std.log.info("Build system works.", .{});
+    var core = try Core.init(
+        .{},
+        std.heap.smp_allocator,
+    );
+    defer core.deinit();
 }
