@@ -6,7 +6,7 @@ pub fn build(build_process: *std.Build) void {
     const target = build_process.standardTargetOptions(.{});
     const optimize = build_process.standardOptimizeOption(.{});
 
-    const lib_mod = build_process.addModule("selvadisk_mbr_extension", .{
+    const lib_mod = build_process.addModule("SelvaDiskBuiltinMbr", .{
         .root_source_file = build_process.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
@@ -15,17 +15,17 @@ pub fn build(build_process: *std.Build) void {
 
     const lib = build_process.addLibrary(.{
         .linkage = .dynamic,
-        .name = "selvadisk_mbr_extension",
+        .name = "SelvaDiskBuiltinMbr",
         .root_module = lib_mod,
     });
 
     const selvadisk_core_dependency = build_process.dependency(
-        "selvadisk_core",
+        "SelvaDiskCore",
         .{},
     );
     lib.root_module.addImport(
-        "selvadisk_core.zig",
-        selvadisk_core_dependency.module("selvadisk_core"),
+        "SelvaDiskCore",
+        selvadisk_core_dependency.module("SelvaDiskCore"),
     );
 
     build_process.installArtifact(lib);

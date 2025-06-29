@@ -9,7 +9,7 @@ cd $INVOCATION_PATH
 
 build_single_extension() {
     local EXTENSION_NAME=$1
-    local EXTENSION_PATH="$SELVADISK_PATH/.extensions/$EXTENSION_NAME"
+    local EXTENSION_PATH="$SELVADISK_PATH/extensions/$EXTENSION_NAME"
     local FUNCTION_ENTRY_PATH=$(pwd)
 
     cd "$EXTENSION_PATH"
@@ -26,7 +26,7 @@ build_all_extensions() {
     fi
     mkdir -p "$SELVADISK_PATH/.extensions"
 
-    for EXTENSION_NAME in $(ls -A "$SELVADISK_PATH/.extensions");
+    for EXTENSION_NAME in $(ls -A "$SELVADISK_PATH/extensions");
     do
         build_single_extension $EXTENSION_NAME
     done
