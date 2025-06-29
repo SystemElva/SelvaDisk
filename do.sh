@@ -8,15 +8,15 @@ cd $INVOCATION_PATH
 
 
 build_single_extension() {
-    local ADDON_NAME=$1
-    local ADDON_PATH="$SELVADISK_PATH/extensions/$ADDON_NAME"
+    local EXTENSION_NAME=$1
+    local EXTENSION_PATH="$SELVADISK_PATH/.extensions/$EXTENSION_NAME"
     local FUNCTION_ENTRY_PATH=$(pwd)
 
-    cd "$ADDON_PATH"
+    cd "$EXTENSION_PATH"
     zig build --release=safe
     cd "$FUNCTION_ENTRY_PATH"
 
-    mv $ADDON_PATH/zig-out/lib/*.so $SELVADISK_PATH/.extensions/
+    mv $EXTENSION_PATH/zig-out/lib/*.so $SELVADISK_PATH/.extensions/
 }
 
 build_all_extensions() {
@@ -26,9 +26,9 @@ build_all_extensions() {
     fi
     mkdir -p "$SELVADISK_PATH/.extensions"
 
-    for ADDON_NAME in $(ls -A "$SELVADISK_PATH/extensions");
+    for EXTENSION_NAME in $(ls -A "$SELVADISK_PATH/.extensions");
     do
-        build_single_extension $ADDON_NAME
+        build_single_extension $EXTENSION_NAME
     done
 }
 

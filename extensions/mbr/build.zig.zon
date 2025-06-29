@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 .{
-    .name = .selvadisk_mbr_addon,
+    .name = .selvadisk_mbr_extension,
     .version = "0.1.0-indev",
     .fingerprint = 0x492dafa014458f58,
     .minimum_zig_version = "0.15.0-dev.278+7733b5dbe",
