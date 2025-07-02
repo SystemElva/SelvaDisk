@@ -2,7 +2,7 @@
 
 const std = @import("std");
 
-export fn initialize() callconv(.C) bool {
+export fn selva_setup() callconv(.C) bool {
     std.log.info("The MBR partitioning scheme driver has been called.", .{});
 
     return true;
