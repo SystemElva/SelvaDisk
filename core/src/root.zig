@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 
 const std = @import("std");
-const Extension = @import("Extension.zig");
+pub const Extension = @import("Extension.zig");
+
 const Core = @This();
 
 extensions: std.ArrayList(Extension),
-
 allocator: std.mem.Allocator,
 
 pub const CreationInfo = struct {
@@ -157,5 +157,10 @@ pub fn init(
 }
 
 pub fn deinit(core: Core) void {
+    var index: usize = 0;
+    while (index < core.extensions.items.len) {
+        core.extensions.items[index].destroy();
+        index += 1;
+    }
     core.extensions.deinit();
 }

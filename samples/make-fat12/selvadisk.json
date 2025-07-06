@@ -1,23 +1,32 @@
 {
     "format_version": 1,
-    "action": "create",
 
     "partitioning": "mbr",
-    "boot_code": "bootcode.bin",
+    "sector_size": 512,
     "volume_size": 2880,
-    "partitions": [
-        {
-            "name": "code-partition",
-            "length": 63,
-            "content": "file",
-            "file": "boot_code.bin"
+    "boot_code": "bootcode.bin",
+
+    "partitions": {
+        "code_partition": {
+            "offset": 1,
+            "length": 63
         },
-        {
-            "name": "bootfs",
-            "length": 1024,
-            "content": "filesystem",
-            "filesystem": "fat12",
+        "bootfs": {
+            "offset": 64,
+            "length": 1024
+        }
+    },
+
+    "contents": {
+        "code_partition": {
+            "type": "raw",
+            "file": "bootcode.bin"
+        },
+
+        "bootfs": {
+            "type": "filesystem",
+            "filesystem": "fat",
             "label": "ElvaBoot"
         }
-    ]
+    }
 }

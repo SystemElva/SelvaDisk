@@ -3,37 +3,41 @@
 const std = @import("std");
 const services = @import("services.zig");
 const Core = @import("root.zig");
+
 const Extension = @This();
 
 // Fields
 
 specifics: ?*anyopaque,
+permanent_arena_head: std.heap.ArenaAllocator,
+
 path: []const u8,
 
-partitioners: std.ArrayList(services.Partitioner),
+disk_partitioners: std.ArrayList(services.DiskPartitioner),
 filesystem_drivers: std.ArrayList(services.FilesystemDriver),
 postprocessors: std.ArrayList(services.Postprocessor),
 
 fn_setup: FnSetup,
 fn_cleanup: ?FnCleanup,
 
-permanent_arena_head: std.heap.ArenaAllocator,
 dynamic_library: std.DynLib,
 
 // Definitions
 
 pub const FnSetup = (*fn (
     core: *Core,
-    pointer: *?*anyopaque,
+    specifics: *Extension,
 ) callconv(.c) bool);
 
 pub const FnCleanup = (*fn (
     extension: *Extension,
 ) callconv(.c) void);
 
-pub const FnPartitionDisk = (*fn (
+pub const FnRequestResource = (*fn (
     extension: *Extension,
-) callconv(.c) void);
+    resource_name: *[]const u8,
+    api_version: usize,
+) callconv(.c) ?*anyopaque);
 
 // Functions
 
@@ -74,7 +78,7 @@ pub fn init(
     const extension = Extension{
         .path = extension_path,
 
-        .partitioners = .init(allocator),
+        .disk_partitioners = .init(allocator),
         .filesystem_drivers = .init(allocator),
         .postprocessors = .init(allocator),
 
@@ -90,7 +94,7 @@ pub fn init(
 }
 
 pub fn setup(self: *Extension, core: *Core) bool {
-    return self.fn_setup(core, &self.specifics);
+    return self.fn_setup(core, self);
 }
 
 pub fn run(self: *Extension) void {
@@ -98,7 +102,9 @@ pub fn run(self: *Extension) void {
 }
 
 pub fn destroy(self: *Extension) void {
-    self.fn_cleanup(self.specifics);
-    self.dynamic_library.close(self.specifics);
+    if (self.fn_cleanup != null) {
+        self.fn_cleanup.?(self);
+    }
+    self.dynamic_library.close();
     self.permanent_arena_head.deinit();
 }
